@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <title>磁懸浮磁學模擬 V20260203.0 (Refactored)</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<div id="sidebar">
+    <div class="section">
+        <h3>研究元件</h3>
+        <div class="grid">
+            <button id="addBarBtn" class="primary">長條磁鐵</button>
+            <button id="addCubeBtn" class="primary">方塊磁鐵</button>
+        </div>
+        <button id="addIronBtn">感應鐵塊</button>
+    </div>
+
+    <div class="section">
+        <h3>物理環境</h3>
+        <button id="simBtn">▶ 開始物理模擬</button>
+        <button id="gravityBtn">🌍 重力: 關閉</button>
+        <label>空氣阻尼 (防止亂跳)</label>
+        <input type="range" id="frictionRange" min="0.85" max="0.99" step="0.01" value="0.95">
+        <label>磁力強度系數</label>
+        <input type="range" id="forceScale" min="1" max="50" value="20">
+        <div class="grid">
+            <button id="saveBtn">💾 儲存設定</button>
+            <button id="loadBtn">📂 讀取設定</button>
+            <input type="file" id="loadInput" style="display:none">
+        </div>
+    </div>
+
+    <div class="section">
+        <h3>觀測與佈局</h3>
+        <button id="alignBtn">📐 自動垂直對齊</button>
+        <div class="grid">
+            <button id="btnLines" class="primary">磁力線</button>
+            <button id="btnGrid">磁力場</button>
+        </div>
+        <button id="clearBtn">🗑 清空場景</button>
+    </div>
+
+    <div id="propPanel" class="section" style="display:none">
+        <h3>選取物件屬性</h3>
+        <label>磁場強度</label>
+        <input type="range" id="strRange" min="0" max="8000" step="100">
+        <label>寬度: <span id="wLabel">0</span>px</label>
+        <input type="range" id="wRange" min="10" max="300">
+        <label>高度: <span id="hLabel">0</span>px</label>
+        <input type="range" id="hRange" min="10" max="100">
+        <label>精確角度: <span id="degLabel">0</span>°</label>
+        <input type="range" id="angRange" min="0" max="360">
+        <div class="grid">
+            <button id="flipBtn">🔄 翻轉</button>
+            <button id="delBtn" style="color:#ff4d4d">🗑 刪除</button>
+        </div>
+    </div>
+</div>
+
+<div id="canvasContainer">
+    <canvas id="simCanvas"></canvas>
+    <div id="hud">
+        磁場強度: <span id="valB" class="hud-val">0.00</span> G<br>
+        系統穩定度: <span id="valStable" class="hud-val">100%</span>
+    </div>
+</div>
+
+<script type="module" src="js/main.js"></script>
+
+</body>
+</html>

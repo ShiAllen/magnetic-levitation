@@ -1,0 +1,16 @@
+:root { --bg: #0a0a0c; --panel: #16161a; --accent: #00aaff; --text: #e0e0e0; }
+body { margin: 0; overflow: hidden; background: var(--bg); font-family: 'Segoe UI', sans-serif; color: var(--text); display: flex; }
+#sidebar { width: 300px; background: var(--panel); border-right: 1px solid #333; height: 100vh; display: flex; flex-direction: column; z-index: 10; font-size: 13px; }
+.section { padding: 15px; border-bottom: 1px solid #333; }
+h3 { margin: 0 0 12px 0; font-size: 14px; color: var(--accent); text-transform: uppercase; }
+button { background: #2a2a30; color: white; border: 1px solid #444; padding: 10px; border-radius: 4px; cursor: pointer; width: 100%; margin-bottom: 8px; transition: 0.2s; }
+button:hover { background: #3a3a45; }
+button.active { background: #d13438; border-color: #ff5f5f; }
+button.primary { background: var(--accent); border-color: #0088cc; color: #000; font-weight: bold; }
+.grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+label { color: #888; display: block; margin: 8px 0 4px 0; }
+input[type=range] { width: 100%; accent-color: var(--accent); }
+#canvasContainer { flex-grow: 1; position: relative; background: radial-gradient(circle, #1a1a20 0%, #0a0a0c 100%); cursor: crosshair; }
+#hud { position: absolute; top: 20px; right: 20px; background: rgba(0,0,0,0.8); padding: 15px; border-radius: 8px; border: 1px solid #444; pointer-events: none; font-family: monospace; }
+.hud-val { color: #00ff00; font-size: 16px; }
+.mag-indicator { position: absolute; pointer-events: none; border: 2px solid rgba(0, 255, 255, 0.5); border-radius: 4px; display: none; }
