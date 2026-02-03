@@ -210,7 +210,7 @@
 
             normalize() {
                 const mag = this.magnitude();
-                if (mag === 0) return new Vector2D(0, 0);
+                if (mag < 1e-10) return new Vector2D(0, 0);
                 return this.divide(mag);
             }
 
@@ -298,6 +298,11 @@
                 this.showField = false;
                 this.draggedBody = null;
                 this.lastTime = Date.now();
+                
+                // Physics constants
+                this.MIN_MAGNETIC_DISTANCE = 10;
+                this.IRON_ATTRACTION_FACTOR = 500;
+                this.MAX_TIME_STEP = 0.1;
                 
                 this.setupEventListeners();
                 this.animate();
@@ -401,7 +406,7 @@
 
             calculateMagneticForce(body1, body2) {
                 const delta = body2.position.subtract(body1.position);
-                const distance = Math.max(delta.magnitude(), 10); // Prevent division by zero
+                const distance = Math.max(delta.magnitude(), this.MIN_MAGNETIC_DISTANCE); // Prevent division by zero
                 const direction = delta.normalize();
 
                 let forceMagnitude = 0;
@@ -413,10 +418,10 @@
                     forceMagnitude = polarityProduct * body1.magnetStrength * body2.magnetStrength / (distance * distance);
                 } else if (body1.type === 'magnet' && body2.type === 'iron') {
                     // Magnet-to-iron interaction (always attractive)
-                    forceMagnitude = -body1.magnetStrength * 500 / (distance * distance);
+                    forceMagnitude = -body1.magnetStrength * this.IRON_ATTRACTION_FACTOR / (distance * distance);
                 } else if (body1.type === 'iron' && body2.type === 'magnet') {
                     // Iron-to-magnet interaction (always attractive)
-                    forceMagnitude = -body2.magnetStrength * 500 / (distance * distance);
+                    forceMagnitude = -body2.magnetStrength * this.IRON_ATTRACTION_FACTOR / (distance * distance);
                 }
 
                 return direction.multiply(forceMagnitude);
@@ -544,7 +549,7 @@
                         for (const body of this.bodies) {
                             if (body.type === 'magnet') {
                                 const delta = new Vector2D(x, y).subtract(body.position);
-                                const distance = Math.max(delta.magnitude(), 10);
+                                const distance = Math.max(delta.magnitude(), this.MIN_MAGNETIC_DISTANCE);
                                 const direction = delta.normalize();
                                 const strength = body.polarity * body.magnetStrength / (distance * distance);
                                 field = field.add(direction.multiply(strength));
@@ -641,7 +646,7 @@
 
             animate() {
                 const currentTime = Date.now();
-                const dt = Math.min((currentTime - this.lastTime) / 1000, 0.1); // Cap dt to prevent large jumps
+                const dt = Math.min((currentTime - this.lastTime) / 1000, this.MAX_TIME_STEP); // Cap dt to prevent large jumps
                 this.lastTime = currentTime;
 
                 this.update(dt);
