@@ -1,0 +1,659 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>磁懸浮模擬器 - Magnetic Levitation Simulator</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+        }
+
+        h1 {
+            color: white;
+            margin-bottom: 20px;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+            text-align: center;
+        }
+
+        .container {
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+            padding: 20px;
+            max-width: 1200px;
+            width: 100%;
+        }
+
+        #canvas {
+            border: 2px solid #333;
+            display: block;
+            background: #f5f5f5;
+            cursor: crosshair;
+            border-radius: 5px;
+        }
+
+        .controls {
+            margin-top: 20px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            align-items: center;
+        }
+
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+
+        label {
+            font-size: 14px;
+            font-weight: bold;
+            color: #333;
+        }
+
+        button {
+            padding: 10px 20px;
+            font-size: 14px;
+            font-weight: bold;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: all 0.3s;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+
+        .btn-add-magnet {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .btn-add-iron {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            color: white;
+        }
+
+        .btn-clear {
+            background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+            color: white;
+        }
+
+        .btn-toggle {
+            background: linear-gradient(135deg, #30cfd0 0%, #330867 100%);
+            color: white;
+        }
+
+        input[type="range"] {
+            width: 150px;
+            cursor: pointer;
+        }
+
+        input[type="number"] {
+            width: 80px;
+            padding: 5px;
+            border: 2px solid #ddd;
+            border-radius: 5px;
+            font-size: 14px;
+        }
+
+        .info {
+            margin-top: 15px;
+            padding: 15px;
+            background: #f0f0f0;
+            border-radius: 5px;
+            font-size: 14px;
+            line-height: 1.6;
+        }
+
+        .info strong {
+            color: #667eea;
+        }
+
+        .separator {
+            width: 1px;
+            height: 30px;
+            background: #ddd;
+        }
+    </style>
+</head>
+<body>
+    <h1>🧲 磁懸浮模擬器 - Magnetic Levitation Simulator</h1>
+    
+    <div class="container">
+        <canvas id="canvas" width="1160" height="600"></canvas>
+        
+        <div class="controls">
+            <button class="btn-add-magnet" onclick="simulator.setMode('magnet')">添加磁鐵 (M)</button>
+            <button class="btn-add-iron" onclick="simulator.setMode('iron')">添加鐵塊 (I)</button>
+            <button class="btn-clear" onclick="simulator.clear()">清除全部 (C)</button>
+            <button class="btn-toggle" onclick="simulator.togglePause()">暫停/繼續 (Space)</button>
+            
+            <div class="separator"></div>
+            
+            <div class="control-group">
+                <label for="gravity">重力: <span id="gravityValue">9.8</span></label>
+                <input type="range" id="gravity" min="0" max="20" step="0.1" value="9.8" 
+                       oninput="simulator.setGravity(this.value); document.getElementById('gravityValue').textContent = this.value">
+            </div>
+            
+            <div class="control-group">
+                <label for="magnetStrength">磁力強度: <span id="magnetStrengthValue">5000</span></label>
+                <input type="range" id="magnetStrength" min="1000" max="10000" step="100" value="5000"
+                       oninput="simulator.setMagnetStrength(this.value); document.getElementById('magnetStrengthValue').textContent = this.value">
+            </div>
+            
+            <div class="separator"></div>
+            
+            <button class="btn-toggle" onclick="simulator.toggleField()">顯示磁場</button>
+        </div>
+        
+        <div class="info">
+            <strong>操作說明：</strong><br>
+            • 點擊「添加磁鐵」後，在畫布上點擊可放置磁鐵（紅色=N極向上，藍色=S極向下）<br>
+            • 點擊「添加鐵塊」後，在畫布上點擊可放置鐵塊（灰色）<br>
+            • 拖動物體可以移動它們的位置<br>
+            • 按住 Shift 點擊物體可以翻轉磁鐵極性或刪除鐵塊<br>
+            • 調整重力和磁力強度來觀察不同的磁懸浮效果<br>
+            • <strong>提示：</strong>在底部放置一個N極向上的強磁鐵，然後在上方放置一個N極向下的磁鐵，觀察磁懸浮現象！
+        </div>
+    </div>
+
+    <script>
+        // Vector2D class for 2D vector operations
+        class Vector2D {
+            constructor(x = 0, y = 0) {
+                this.x = x;
+                this.y = y;
+            }
+
+            add(v) {
+                return new Vector2D(this.x + v.x, this.y + v.y);
+            }
+
+            subtract(v) {
+                return new Vector2D(this.x - v.x, this.y - v.y);
+            }
+
+            multiply(scalar) {
+                return new Vector2D(this.x * scalar, this.y * scalar);
+            }
+
+            divide(scalar) {
+                return new Vector2D(this.x / scalar, this.y / scalar);
+            }
+
+            magnitude() {
+                return Math.sqrt(this.x * this.x + this.y * this.y);
+            }
+
+            normalize() {
+                const mag = this.magnitude();
+                if (mag === 0) return new Vector2D(0, 0);
+                return this.divide(mag);
+            }
+
+            distanceTo(v) {
+                return this.subtract(v).magnitude();
+            }
+
+            dot(v) {
+                return this.x * v.x + this.y * v.y;
+            }
+
+            clone() {
+                return new Vector2D(this.x, this.y);
+            }
+        }
+
+        // RigidBody class representing physical objects
+        class RigidBody {
+            constructor(x, y, width, height, type, polarity = 1) {
+                this.position = new Vector2D(x, y);
+                this.velocity = new Vector2D(0, 0);
+                this.acceleration = new Vector2D(0, 0);
+                this.width = width;
+                this.height = height;
+                this.type = type; // 'magnet' or 'iron'
+                this.polarity = polarity; // 1 for N-up, -1 for S-up (magnets only)
+                this.mass = type === 'magnet' ? 2.0 : 1.5;
+                this.restitution = 0.3; // Bounce factor
+                this.friction = 0.98; // Velocity damping
+                this.isDragging = false;
+                this.magnetStrength = 5000;
+            }
+
+            applyForce(force) {
+                // F = ma, so a = F/m
+                this.acceleration = this.acceleration.add(force.divide(this.mass));
+            }
+
+            update(dt) {
+                if (this.isDragging) {
+                    this.velocity = new Vector2D(0, 0);
+                    this.acceleration = new Vector2D(0, 0);
+                    return;
+                }
+
+                // Update velocity with acceleration
+                this.velocity = this.velocity.add(this.acceleration.multiply(dt));
+                
+                // Apply friction/drag
+                this.velocity = this.velocity.multiply(this.friction);
+                
+                // Update position with velocity
+                this.position = this.position.add(this.velocity.multiply(dt));
+                
+                // Reset acceleration for next frame
+                this.acceleration = new Vector2D(0, 0);
+            }
+
+            getBounds() {
+                return {
+                    left: this.position.x - this.width / 2,
+                    right: this.position.x + this.width / 2,
+                    top: this.position.y - this.height / 2,
+                    bottom: this.position.y + this.height / 2
+                };
+            }
+
+            contains(x, y) {
+                const bounds = this.getBounds();
+                return x >= bounds.left && x <= bounds.right &&
+                       y >= bounds.top && y <= bounds.bottom;
+            }
+        }
+
+        // Main Physics Engine and Simulator
+        class MagneticSimulator {
+            constructor(canvas) {
+                this.canvas = canvas;
+                this.ctx = canvas.getContext('2d');
+                this.bodies = [];
+                this.gravity = 9.8;
+                this.magnetStrengthMultiplier = 5000;
+                this.mode = 'magnet'; // 'magnet' or 'iron'
+                this.paused = false;
+                this.showField = false;
+                this.draggedBody = null;
+                this.lastTime = Date.now();
+                
+                this.setupEventListeners();
+                this.animate();
+            }
+
+            setupEventListeners() {
+                this.canvas.addEventListener('mousedown', (e) => this.handleMouseDown(e));
+                this.canvas.addEventListener('mousemove', (e) => this.handleMouseMove(e));
+                this.canvas.addEventListener('mouseup', (e) => this.handleMouseUp(e));
+                
+                document.addEventListener('keydown', (e) => {
+                    if (e.key === 'm' || e.key === 'M') this.setMode('magnet');
+                    if (e.key === 'i' || e.key === 'I') this.setMode('iron');
+                    if (e.key === 'c' || e.key === 'C') this.clear();
+                    if (e.key === ' ') {
+                        e.preventDefault();
+                        this.togglePause();
+                    }
+                });
+            }
+
+            handleMouseDown(e) {
+                const rect = this.canvas.getBoundingClientRect();
+                const x = e.clientX - rect.left;
+                const y = e.clientY - rect.top;
+
+                // Check if clicking on existing body
+                for (let i = this.bodies.length - 1; i >= 0; i--) {
+                    if (this.bodies[i].contains(x, y)) {
+                        if (e.shiftKey) {
+                            // Shift+click: flip polarity or remove
+                            if (this.bodies[i].type === 'magnet') {
+                                this.bodies[i].polarity *= -1;
+                            } else {
+                                this.bodies.splice(i, 1);
+                            }
+                        } else {
+                            // Start dragging
+                            this.draggedBody = this.bodies[i];
+                            this.draggedBody.isDragging = true;
+                        }
+                        return;
+                    }
+                }
+
+                // Add new body
+                if (this.mode === 'magnet') {
+                    const magnet = new RigidBody(x, y, 40, 40, 'magnet', 1);
+                    magnet.magnetStrength = this.magnetStrengthMultiplier;
+                    this.bodies.push(magnet);
+                } else if (this.mode === 'iron') {
+                    this.bodies.push(new RigidBody(x, y, 30, 30, 'iron'));
+                }
+            }
+
+            handleMouseMove(e) {
+                if (this.draggedBody) {
+                    const rect = this.canvas.getBoundingClientRect();
+                    const x = e.clientX - rect.left;
+                    const y = e.clientY - rect.top;
+                    this.draggedBody.position = new Vector2D(x, y);
+                }
+            }
+
+            handleMouseUp(e) {
+                if (this.draggedBody) {
+                    this.draggedBody.isDragging = false;
+                    this.draggedBody = null;
+                }
+            }
+
+            setMode(mode) {
+                this.mode = mode;
+            }
+
+            setGravity(value) {
+                this.gravity = parseFloat(value);
+            }
+
+            setMagnetStrength(value) {
+                this.magnetStrengthMultiplier = parseFloat(value);
+                // Update existing magnets
+                this.bodies.forEach(body => {
+                    if (body.type === 'magnet') {
+                        body.magnetStrength = this.magnetStrengthMultiplier;
+                    }
+                });
+            }
+
+            togglePause() {
+                this.paused = !this.paused;
+            }
+
+            toggleField() {
+                this.showField = !this.showField;
+            }
+
+            clear() {
+                this.bodies = [];
+            }
+
+            calculateMagneticForce(body1, body2) {
+                const delta = body2.position.subtract(body1.position);
+                const distance = Math.max(delta.magnitude(), 10); // Prevent division by zero
+                const direction = delta.normalize();
+
+                let forceMagnitude = 0;
+
+                if (body1.type === 'magnet' && body2.type === 'magnet') {
+                    // Magnet-to-magnet interaction
+                    // Same polarity repels, opposite polarity attracts
+                    const polarityProduct = body1.polarity * body2.polarity;
+                    forceMagnitude = polarityProduct * body1.magnetStrength * body2.magnetStrength / (distance * distance);
+                } else if (body1.type === 'magnet' && body2.type === 'iron') {
+                    // Magnet-to-iron interaction (always attractive)
+                    forceMagnitude = -body1.magnetStrength * 500 / (distance * distance);
+                } else if (body1.type === 'iron' && body2.type === 'magnet') {
+                    // Iron-to-magnet interaction (always attractive)
+                    forceMagnitude = -body2.magnetStrength * 500 / (distance * distance);
+                }
+
+                return direction.multiply(forceMagnitude);
+            }
+
+            applyGravity(body) {
+                const gravityForce = new Vector2D(0, this.gravity * body.mass);
+                body.applyForce(gravityForce);
+            }
+
+            checkCollisions() {
+                // Boundary collisions
+                for (const body of this.bodies) {
+                    const bounds = body.getBounds();
+                    
+                    if (bounds.left < 0) {
+                        body.position.x = body.width / 2;
+                        body.velocity.x *= -body.restitution;
+                    }
+                    if (bounds.right > this.canvas.width) {
+                        body.position.x = this.canvas.width - body.width / 2;
+                        body.velocity.x *= -body.restitution;
+                    }
+                    if (bounds.top < 0) {
+                        body.position.y = body.height / 2;
+                        body.velocity.y *= -body.restitution;
+                    }
+                    if (bounds.bottom > this.canvas.height) {
+                        body.position.y = this.canvas.height - body.height / 2;
+                        body.velocity.y *= -body.restitution;
+                        // Add extra friction when touching ground
+                        body.velocity.x *= 0.8;
+                    }
+                }
+
+                // Body-to-body collisions
+                for (let i = 0; i < this.bodies.length; i++) {
+                    for (let j = i + 1; j < this.bodies.length; j++) {
+                        const body1 = this.bodies[i];
+                        const body2 = this.bodies[j];
+                        
+                        const bounds1 = body1.getBounds();
+                        const bounds2 = body2.getBounds();
+                        
+                        // AABB collision detection
+                        if (bounds1.right > bounds2.left &&
+                            bounds1.left < bounds2.right &&
+                            bounds1.bottom > bounds2.top &&
+                            bounds1.top < bounds2.bottom) {
+                            
+                            // Resolve collision
+                            const delta = body2.position.subtract(body1.position);
+                            const distance = delta.magnitude();
+                            if (distance === 0) continue;
+                            
+                            const normal = delta.normalize();
+                            const relativeVelocity = body2.velocity.subtract(body1.velocity);
+                            const velocityAlongNormal = relativeVelocity.dot(normal);
+                            
+                            // Don't resolve if velocities are separating
+                            if (velocityAlongNormal > 0) continue;
+                            
+                            // Calculate restitution
+                            const restitution = Math.min(body1.restitution, body2.restitution);
+                            
+                            // Calculate impulse scalar
+                            let impulseScalar = -(1 + restitution) * velocityAlongNormal;
+                            impulseScalar /= (1 / body1.mass + 1 / body2.mass);
+                            
+                            // Apply impulse
+                            const impulse = normal.multiply(impulseScalar);
+                            body1.velocity = body1.velocity.subtract(impulse.divide(body1.mass));
+                            body2.velocity = body2.velocity.add(impulse.divide(body2.mass));
+                            
+                            // Position correction to prevent overlap
+                            const overlap = (body1.width + body2.width) / 2 - distance;
+                            if (overlap > 0) {
+                                const correction = normal.multiply(overlap / 2);
+                                body1.position = body1.position.subtract(correction);
+                                body2.position = body2.position.add(correction);
+                            }
+                        }
+                    }
+                }
+            }
+
+            update(dt) {
+                if (this.paused) return;
+
+                // Apply magnetic forces
+                for (let i = 0; i < this.bodies.length; i++) {
+                    for (let j = i + 1; j < this.bodies.length; j++) {
+                        const force = this.calculateMagneticForce(this.bodies[i], this.bodies[j]);
+                        this.bodies[i].applyForce(force);
+                        this.bodies[j].applyForce(force.multiply(-1));
+                    }
+                }
+
+                // Apply gravity
+                for (const body of this.bodies) {
+                    this.applyGravity(body);
+                }
+
+                // Update physics
+                for (const body of this.bodies) {
+                    body.update(dt);
+                }
+
+                // Handle collisions
+                this.checkCollisions();
+            }
+
+            drawMagneticField() {
+                const gridSize = 40;
+                const arrowLength = 15;
+                
+                this.ctx.strokeStyle = 'rgba(100, 100, 255, 0.3)';
+                this.ctx.lineWidth = 1;
+                
+                for (let x = gridSize / 2; x < this.canvas.width; x += gridSize) {
+                    for (let y = gridSize / 2; y < this.canvas.height; y += gridSize) {
+                        let field = new Vector2D(0, 0);
+                        
+                        // Calculate field contribution from each magnet
+                        for (const body of this.bodies) {
+                            if (body.type === 'magnet') {
+                                const delta = new Vector2D(x, y).subtract(body.position);
+                                const distance = Math.max(delta.magnitude(), 10);
+                                const direction = delta.normalize();
+                                const strength = body.polarity * body.magnetStrength / (distance * distance);
+                                field = field.add(direction.multiply(strength));
+                            }
+                        }
+                        
+                        const fieldMag = field.magnitude();
+                        if (fieldMag > 0.01) {
+                            const fieldDir = field.normalize();
+                            const endX = x + fieldDir.x * arrowLength;
+                            const endY = y + fieldDir.y * arrowLength;
+                            
+                            this.ctx.beginPath();
+                            this.ctx.moveTo(x, y);
+                            this.ctx.lineTo(endX, endY);
+                            this.ctx.stroke();
+                        }
+                    }
+                }
+            }
+
+            draw() {
+                // Clear canvas
+                this.ctx.fillStyle = '#f5f5f5';
+                this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+
+                // Draw magnetic field if enabled
+                if (this.showField) {
+                    this.drawMagneticField();
+                }
+
+                // Draw bodies
+                for (const body of this.bodies) {
+                    const bounds = body.getBounds();
+                    
+                    if (body.type === 'magnet') {
+                        // Draw magnet with N and S poles
+                        const halfHeight = body.height / 2;
+                        
+                        // North pole (top or bottom depending on polarity)
+                        this.ctx.fillStyle = body.polarity > 0 ? '#ff4444' : '#4444ff';
+                        this.ctx.fillRect(bounds.left, bounds.top, body.width, halfHeight);
+                        
+                        // South pole
+                        this.ctx.fillStyle = body.polarity > 0 ? '#4444ff' : '#ff4444';
+                        this.ctx.fillRect(bounds.left, bounds.top + halfHeight, body.width, halfHeight);
+                        
+                        // Border
+                        this.ctx.strokeStyle = '#000';
+                        this.ctx.lineWidth = 2;
+                        this.ctx.strokeRect(bounds.left, bounds.top, body.width, body.height);
+                        
+                        // Labels
+                        this.ctx.fillStyle = 'white';
+                        this.ctx.font = 'bold 16px Arial';
+                        this.ctx.textAlign = 'center';
+                        this.ctx.textBaseline = 'middle';
+                        this.ctx.fillText(body.polarity > 0 ? 'N' : 'S', body.position.x, body.position.y - halfHeight / 2);
+                        this.ctx.fillText(body.polarity > 0 ? 'S' : 'N', body.position.x, body.position.y + halfHeight / 2);
+                    } else {
+                        // Draw iron block
+                        this.ctx.fillStyle = '#888888';
+                        this.ctx.fillRect(bounds.left, bounds.top, body.width, body.height);
+                        
+                        this.ctx.strokeStyle = '#333';
+                        this.ctx.lineWidth = 2;
+                        this.ctx.strokeRect(bounds.left, bounds.top, body.width, body.height);
+                        
+                        // Label
+                        this.ctx.fillStyle = 'white';
+                        this.ctx.font = 'bold 14px Arial';
+                        this.ctx.textAlign = 'center';
+                        this.ctx.textBaseline = 'middle';
+                        this.ctx.fillText('Fe', body.position.x, body.position.y);
+                    }
+                    
+                    // Highlight if dragging
+                    if (body.isDragging) {
+                        this.ctx.strokeStyle = '#ffff00';
+                        this.ctx.lineWidth = 3;
+                        this.ctx.strokeRect(bounds.left - 2, bounds.top - 2, body.width + 4, body.height + 4);
+                    }
+                }
+
+                // Draw pause indicator
+                if (this.paused) {
+                    this.ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+                    this.ctx.font = 'bold 48px Arial';
+                    this.ctx.textAlign = 'center';
+                    this.ctx.textBaseline = 'middle';
+                    this.ctx.fillText('⏸ 已暫停', this.canvas.width / 2, this.canvas.height / 2);
+                }
+            }
+
+            animate() {
+                const currentTime = Date.now();
+                const dt = Math.min((currentTime - this.lastTime) / 1000, 0.1); // Cap dt to prevent large jumps
+                this.lastTime = currentTime;
+
+                this.update(dt);
+                this.draw();
+
+                requestAnimationFrame(() => this.animate());
+            }
+        }
+
+        // Initialize simulator
+        const canvas = document.getElementById('canvas');
+        const simulator = new MagneticSimulator(canvas);
+    </script>
+</body>
+</html>
